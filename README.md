@@ -45,8 +45,8 @@ import (
 )
 
 func main()  {
-	client := coinpayments.New(
-		coinpayments.WithAPIKey(/* API Key */),
+    client := coinpayments.New(
+        coinpayments.WithAPIKey(/* API Key */),
         coinpayments.WithAPISecret(/* API Secret */),
     )
 }

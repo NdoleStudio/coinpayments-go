@@ -1,17 +1,19 @@
-package client
+package coinpayments
 
 import "net/http"
 
 type clientConfig struct {
 	httpClient *http.Client
-	delay      int
+	version    string
+	apiKey     string
+	apiSecret  string
 	baseURL    string
 }
 
 func defaultClientConfig() *clientConfig {
 	return &clientConfig{
 		httpClient: http.DefaultClient,
-		delay:      0,
-		baseURL:    "https://httpstat.us",
+		version:    "1",
+		baseURL:    "https://www.coinpayments.net/api.php",
 	}
 }

@@ -1,4 +1,4 @@
-package client
+package coinpayments
 
 import (
 	"bytes"

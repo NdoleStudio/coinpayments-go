@@ -1,4 +1,4 @@
-package client
+package coinpayments
 
 import (
 	"net/http"
@@ -26,7 +26,7 @@ func WithHTTPClient(httpClient *http.Client) Option {
 	})
 }
 
-// WithBaseURL set's the base url for the flutterwave API
+// WithBaseURL set's the base url for the coinpayments API
 func WithBaseURL(baseURL string) Option {
 	return clientOptionFunc(func(config *clientConfig) {
 		if baseURL != "" {
@@ -35,12 +35,16 @@ func WithBaseURL(baseURL string) Option {
 	})
 }
 
-// WithDelay sets the delay in milliseconds before a response is gotten.
-// The delay must be > 0 for it to be used.
-func WithDelay(delay int) Option {
+// WithAPIKey the coinpayments api key
+func WithAPIKey(apiKey string) Option {
 	return clientOptionFunc(func(config *clientConfig) {
-		if delay > 0 {
-			config.delay = delay
-		}
+		config.apiKey = apiKey
+	})
+}
+
+// WithAPISecret the coinpayments api secret
+func WithAPISecret(apiSecret string) Option {
+	return clientOptionFunc(func(config *clientConfig) {
+		config.apiSecret = apiSecret
 	})
 }

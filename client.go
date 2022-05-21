@@ -1,32 +1,36 @@
-package client
+package coinpayments
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"crypto/hmac"
+	"crypto/sha512"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strconv"
+	"net/url"
+	strconv "strconv"
+	"strings"
 )
 
 type service struct {
 	client *Client
 }
 
-// Client is the campay API client.
+// Client is the coinpayments API client.
 // Do not instantiate this client with Client{}. Use the New method instead.
 type Client struct {
 	httpClient *http.Client
 	common     service
 	baseURL    string
-	delay      int
+	apiKey     string
+	apiSecret  string
+	version    string
 
-	Status *statusService
+	Payment *paymentService
 }
 
-// New creates and returns a new campay.Client from a slice of campay.ClientOption.
+// New creates and returns a new Client from a slice of Option.
 func New(options ...Option) *Client {
 	config := defaultClientConfig()
 
@@ -35,42 +39,43 @@ func New(options ...Option) *Client {
 	}
 
 	client := &Client{
+		apiKey:     config.apiKey,
+		version:    config.version,
+		apiSecret:  config.apiSecret,
 		httpClient: config.httpClient,
-		delay:      config.delay,
 		baseURL:    config.baseURL,
 	}
 
 	client.common.client = client
-	client.Status = (*statusService)(&client.common)
+	client.Payment = (*paymentService)(&client.common)
 	return client
 }
 
 // newRequest creates an API request. A relative URL can be provided in uri,
 // in which case it is resolved relative to the BaseURL of the Client.
 // URI's should always be specified without a preceding slash.
-func (client *Client) newRequest(ctx context.Context, method, uri string, body interface{}) (*http.Request, error) {
-	var buf io.ReadWriter
-	if body != nil {
-		buf = &bytes.Buffer{}
-		enc := json.NewEncoder(buf)
-		enc.SetEscapeHTML(false)
-		err := enc.Encode(body)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, client.baseURL+uri, buf)
+func (client *Client) newRequest(ctx context.Context, method, cmd string, body url.Values) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, client.baseURL, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
+	client.addURLParams(req, map[string]string{
+		"cmd":     cmd,
+		"key":     client.apiKey,
+		"format":  "json",
+		"version": client.version,
+	})
 
-	if client.delay > 0 {
-		client.addURLParams(req, map[string]string{"sleep": strconv.Itoa(client.delay)})
+	// generate hmac hash of data and private key
+	hash, err := client.computeHMAC(body.Encode())
+	if err != nil {
+		return nil, err
 	}
+
+	req.Header.Add("HMAC", hash)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(body.Encode())))
 
 	return req, nil
 }
@@ -127,4 +132,13 @@ func (client *Client) newResponse(httpResponse *http.Response) (*Response, error
 	resp.Body = &buf
 
 	return resp, resp.Error()
+}
+
+// computeHMAC returns our hmac because on the secret key of our account
+func (client *Client) computeHMAC(data string) (string, error) {
+	hash := hmac.New(sha512.New, []byte(client.apiSecret))
+	if _, err := hash.Write([]byte(data)); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }

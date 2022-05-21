@@ -2,13 +2,14 @@ package coinpayments
 
 import (
 	"context"
-	"github.com/NdoleStudio/coinpayments-go/internal/helpers"
-	"github.com/NdoleStudio/coinpayments-go/internal/stubs"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/NdoleStudio/coinpayments-go/internal/helpers"
+	"github.com/NdoleStudio/coinpayments-go/internal/stubs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPaymentService_CreateTransaction_Request(t *testing.T) {
@@ -82,7 +83,7 @@ func TestPaymentService_CreateTransaction_Ok(t *testing.T) {
 			Amount:         "1.00000000",
 			Address:        "ZZZ",
 			DestTag:        "YYY",
-			TxnID:          "XXX",
+			TransactionID:  "XXX",
 			ConfirmsNeeded: "10",
 			Timeout:        9000,
 			CheckoutURL:    "https://www.coinpayments.net/index.php?cmd=checkout&id=XXX&key=ZZZ",

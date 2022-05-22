@@ -7,6 +7,7 @@ type clientConfig struct {
 	version    string
 	apiKey     string
 	apiSecret  string
+	ipnSecret  string
 	baseURL    string
 }
 

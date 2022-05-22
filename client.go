@@ -9,13 +9,20 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	strconv "strconv"
+	"strconv"
 	"strings"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type service struct {
 	client *Client
 }
+
+const (
+	// HeaderNameHMAC is used for authentication
+	HeaderNameHMAC = "HMAC"
+)
 
 // Client is the coinpayments API client.
 // Do not instantiate this client with Client{}. Use the New method instead.
@@ -26,6 +33,7 @@ type Client struct {
 	apiKey     string
 	apiSecret  string
 	version    string
+	ipnSecret  string
 
 	Payment *paymentService
 }
@@ -44,6 +52,7 @@ func New(options ...Option) *Client {
 		apiSecret:  config.apiSecret,
 		httpClient: config.httpClient,
 		baseURL:    config.baseURL,
+		ipnSecret:  config.ipnSecret,
 	}
 
 	client.common.client = client
@@ -55,39 +64,28 @@ func New(options ...Option) *Client {
 // in which case it is resolved relative to the BaseURL of the Client.
 // URI's should always be specified without a preceding slash.
 func (client *Client) newRequest(ctx context.Context, method, cmd string, body url.Values) (*http.Request, error) {
+	body.Add("cmd", cmd)
+	body.Add("key", client.apiKey)
+	body.Add("format", "json")
+	body.Add("version", client.version)
+
 	req, err := http.NewRequestWithContext(ctx, method, client.baseURL, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
 
-	client.addURLParams(req, map[string]string{
-		"cmd":     cmd,
-		"key":     client.apiKey,
-		"format":  "json",
-		"version": client.version,
-	})
-
 	// generate hmac hash of data and private key
-	hash, err := client.computeHMAC(body.Encode())
+	hash, err := client.computeHMAC(body.Encode(), client.apiSecret)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("HMAC", hash)
+	spew.Dump(hash)
+	req.Header.Add(HeaderNameHMAC, hash)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(body.Encode())))
 
 	return req, nil
-}
-
-// addURLParams adds urls parameters to an *http.Request
-func (client *Client) addURLParams(request *http.Request, params map[string]string) *http.Request {
-	q := request.URL.Query()
-	for key, value := range params {
-		q.Add(key, value)
-	}
-	request.URL.RawQuery = q.Encode()
-	return request
 }
 
 // do carries out an HTTP request and returns a Response
@@ -134,11 +132,16 @@ func (client *Client) newResponse(httpResponse *http.Response) (*Response, error
 	return resp, resp.Error()
 }
 
-// computeHMAC returns our hmac because on the secret key of our account
-func (client *Client) computeHMAC(data string) (string, error) {
-	hash := hmac.New(sha512.New, []byte(client.apiSecret))
+// computeHMAC returns the hmac hash of the data
+func (client *Client) computeHMAC(data string, secret string) (string, error) {
+	hash := hmac.New(sha512.New, []byte(secret))
 	if _, err := hash.Write([]byte(data)); err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+}
+
+// IpnHMAC returns the hmac hash of the data
+func (client *Client) IpnHMAC(data string) (string, error) {
+	return client.computeHMAC(data, client.ipnSecret)
 }

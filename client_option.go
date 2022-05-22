@@ -48,3 +48,10 @@ func WithAPISecret(apiSecret string) Option {
 		config.apiSecret = apiSecret
 	})
 }
+
+// WithIPNSecret the coinpayments IPN secret
+func WithIPNSecret(ipnSecret string) Option {
+	return clientOptionFunc(func(config *clientConfig) {
+		config.ipnSecret = ipnSecret
+	})
+}

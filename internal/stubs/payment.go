@@ -1,5 +1,6 @@
 package stubs
 
+// CreatePaymentsOkResponse response from the create payments endpoint
 func CreatePaymentsOkResponse() []byte {
 	return []byte(`
 		{
@@ -15,6 +16,16 @@ func CreatePaymentsOkResponse() []byte {
 				"status_url":"https:\/\/www.coinpayments.net\/index.php?cmd=status&id=XXX&key=ZZZ",
 				"qrcode_url":"https:\/\/www.coinpayments.net\/qrgen.php?id=XXX&key=ZZZ"
 			}
+		}
+`)
 }
+
+// GetTransactionErrorResponse invalid transaction response
+func GetTransactionErrorResponse() []byte {
+	return []byte(`
+		{
+			"error":"Invalid API version - no version specified",
+			"result":[]
+		}
 `)
 }
